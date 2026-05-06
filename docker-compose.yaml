@@ -1,0 +1,9 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: snipqurl
+      POSTGRES_PASSWORD: snipqurl
+      POSTGRES_DB: snipqurl
+    ports:
+      - "5432:5432"
