@@ -2,7 +2,6 @@ package service
 
 import (
 	"crypto/rand"
-	"encoding/base32"
 	"errors"
 	"fmt"
 	"log"
@@ -14,15 +13,15 @@ import (
 
 type URLService interface {
 	Shorten(originalURL string) (*model.URL, error)
-	GetOrginalURL(code string) (*model.URL, error)
+	GetOriginalURL(code string) (*model.URL, error)
 }
 
 type urlService struct {
 	repo repository.URLRepository
 }
 
-func New(repo *repository.URLRepository) URLService {
-	return urlService{repo: repo}
+func New(repo repository.URLRepository) URLService {
+	return &urlService{repo: repo}
 }
 
 func (s *urlService) Shorten(originalURL string) (*model.URL, error) {
@@ -41,9 +40,7 @@ func (s *urlService) Shorten(originalURL string) (*model.URL, error) {
 		if err == nil {
 			continue
 		}
-		if err != nil {
-			return nil, err
-		}
+		return nil, err
 	}
 
 	newURL := &model.URL{
