@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"snipqurl/internal/model"
@@ -35,13 +36,15 @@ func (r *urlRepository) Save(url *model.URL) error {
 	return nil
 }
 
+var ErrNotFound = errors.New("url not found")
+
 func (r *urlRepository) FindByShortCode(code string) (*model.URL, error) {
 	var u model.URL
 	query := `SELECT * from urls WHERE short_code = $1`
 
 	err := r.db.Get(&u, query, code)
 	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("url not found")
+		return nil, ErrNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("database error: %w", err)
