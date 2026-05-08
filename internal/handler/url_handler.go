@@ -18,12 +18,12 @@ func New(svc service.URLService) *URLHandler {
 	return &URLHandler{svc: svc}
 }
 
-func (h *URLHandler) Shorten(c *gin.Context) {
-	type shortenRequest struct {
-		URL string `json:"url"`
-	}
+type request struct {
+	URL string `json:"url"`
+}
 
-	var req shortenRequest
+func (h *URLHandler) Shorten(c *gin.Context) {
+	var req request
 	err := c.ShouldBindJSON(&req)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -48,4 +48,21 @@ func (h *URLHandler) Redirect(c *gin.Context) {
 		return
 	}
 	c.Redirect(http.StatusMovedPermanently, u.OriginalURL)
+}
+
+func (h *URLHandler) GenerateQR(c *gin.Context) {
+	var req request
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	png, err := h.svc.GenerateQR(req.URL)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.Data(http.StatusOK, "image/png", png)
 }

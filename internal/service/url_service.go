@@ -5,15 +5,17 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net/url"
 
 	"snipqurl/internal/model"
 	"snipqurl/internal/repository"
+
+	"github.com/skip2/go-qrcode"
 )
 
 type URLService interface {
 	Shorten(originalURL string) (*model.URL, error)
 	GetOriginalURL(code string) (*model.URL, error)
+	GenerateQR(originalURL string) ([]byte, error)
 }
 
 type urlService struct {
@@ -25,9 +27,9 @@ func New(repo repository.URLRepository) URLService {
 }
 
 func (s *urlService) Shorten(originalURL string) (*model.URL, error) {
-	u, err := url.ParseRequestURI(originalURL)
-	if err != nil || (u.Scheme != "http" && u.Scheme != "https") {
-		return nil, fmt.Errorf("invalid url: %w", err)
+	err := validateURL(originalURL)
+	if err != nil {
+		return nil, err
 	}
 
 	var code string
@@ -67,4 +69,18 @@ func (s *urlService) GetOriginalURL(code string) (*model.URL, error) {
 	}
 
 	return u, nil
+}
+
+func (s *urlService) GenerateQR(originalURL string) ([]byte, error) {
+	err := validateURL(originalURL)
+	if err != nil {
+		return nil, err
+	}
+
+	png, err := qrcode.Encode(originalURL, qrcode.Medium, 1024)
+	if err != nil {
+		return nil, err
+	}
+
+	return png, nil
 }
