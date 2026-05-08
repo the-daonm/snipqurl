@@ -15,8 +15,8 @@ func NewDB() (*sqlx.DB, error) {
 		return nil, err
 	}
 
-	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
-		cfg.user, cfg.password, cfg.host, cfg.port, cfg.name)
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		cfg.host, cfg.port, cfg.user, cfg.password, cfg.name)
 
 	db, err := sqlx.Open("pgx", dsn)
 	if err != nil {
