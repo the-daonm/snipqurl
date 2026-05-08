@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -32,6 +33,10 @@ func (h *URLHandler) Shorten(c *gin.Context) {
 
 	u, err := h.svc.Shorten(req.URL)
 	if err != nil {
+		if errors.Is(err, service.ErrInvalidURL) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -60,6 +65,10 @@ func (h *URLHandler) GenerateQR(c *gin.Context) {
 
 	png, err := h.svc.GenerateQR(req.URL)
 	if err != nil {
+		if errors.Is(err, service.ErrInvalidURL) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
