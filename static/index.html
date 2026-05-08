@@ -1,0 +1,616 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SnipQURL - Vibrant URL Management</title>
+    <style>
+      /* Vibrant Cyber-Gruvbox Palette */
+      :root {
+        --bg-deep: #1d2021;
+        --bg-soft: #282828;
+        --fg: #fbf1c7;
+        --primary: #fb4934; /* Bright Red */
+        --secondary: #b8bb26; /* Bright Green */
+        --accent: #fabd2f; /* Bright Yellow */
+        --blue: #83a598;
+        --purple: #d3869b;
+        --aqua: #8ec07c;
+        --orange: #fe8019;
+
+        --grad: linear-gradient(135deg, var(--primary), var(--orange));
+      }
+
+      * {
+        box-sizing: border-box;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      body {
+        font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+        background-color: var(--bg-deep);
+        color: var(--fg);
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      /* Background Decorations */
+      body::before {
+        content: "";
+        position: fixed;
+        top: -10%;
+        left: -10%;
+        width: 40%;
+        height: 40%;
+        background: radial-gradient(
+          circle,
+          rgba(251, 73, 52, 0.15) 0%,
+          transparent 70%
+        );
+        z-index: -1;
+      }
+
+      body::after {
+        content: "";
+        position: fixed;
+        bottom: -10%;
+        right: -10%;
+        width: 40%;
+        height: 40%;
+        background: radial-gradient(
+          circle,
+          rgba(142, 192, 124, 0.15) 0%,
+          transparent 70%
+        );
+        z-index: -1;
+      }
+
+      .container {
+        width: 100%;
+        max-width: 1100px;
+        padding: 2rem;
+        z-index: 1;
+      }
+
+      header {
+        text-align: center;
+        margin-bottom: 3rem;
+      }
+
+      h1 {
+        font-size: 4rem;
+        font-weight: 900;
+        margin: 0;
+        background: var(--grad);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+        letter-spacing: -2px;
+      }
+
+      /* Tabs */
+      .tabs-container {
+        background: var(--bg-soft);
+        padding: 0.5rem;
+        border-radius: 20px;
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 2rem;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      }
+
+      .tab-btn {
+        flex: 1;
+        padding: 1rem;
+        border: none;
+        background: transparent;
+        color: var(--fg);
+        font-weight: 700;
+        cursor: pointer;
+        border-radius: 15px;
+        font-size: 1.1rem;
+      }
+
+      .tab-btn.active {
+        background: var(--grad);
+        color: var(--bg-deep);
+        box-shadow: 0 5px 15px rgba(251, 73, 52, 0.3);
+      }
+
+      /* Main Card */
+      .card {
+        background: var(--bg-soft);
+        padding: 3rem;
+        border-radius: 30px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(10px);
+      }
+
+      .input-wrapper {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+      }
+
+      .input-group {
+        display: flex;
+        gap: 1rem;
+      }
+
+      input[type="url"] {
+        flex: 1;
+        background: rgba(0, 0, 0, 0.3);
+        border: 2px solid var(--bg-deep);
+        padding: 1.5rem;
+        border-radius: 18px;
+        color: #fff;
+        font-size: 1.2rem;
+        outline: none;
+      }
+
+      input[type="url"]:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 4px rgba(250, 189, 47, 0.15);
+      }
+
+      .main-btn {
+        padding: 0 3rem;
+        border: none;
+        border-radius: 18px;
+        background: var(--grad);
+        color: var(--bg-deep);
+        font-weight: 900;
+        font-size: 1.2rem;
+        cursor: pointer;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .main-btn:hover {
+        transform: scale(1.05);
+        filter: brightness(1.1);
+      }
+
+      .main-btn:disabled {
+        filter: grayscale(1);
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .checkbox-container {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        font-weight: 600;
+        color: var(--aqua);
+        cursor: pointer;
+      }
+
+      .checkbox-container input {
+        width: 24px;
+        height: 24px;
+        accent-color: var(--primary);
+      }
+
+      /* Floating Result Modal */
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(8px);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        opacity: 0;
+      }
+
+      .modal-overlay.active {
+        display: flex;
+        animation: fadeIn 0.3s forwards;
+      }
+
+      .modal-card {
+        background: var(--bg-soft);
+        width: 90%;
+        max-width: 500px;
+        padding: 3rem;
+        border-radius: 40px;
+        border: 2px solid var(--primary);
+        box-shadow: 0 0 50px rgba(251, 73, 52, 0.2);
+        position: relative;
+        transform: scale(0.8);
+      }
+
+      .modal-overlay.active .modal-card {
+        animation: zoomIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+      }
+
+      .close-modal {
+        position: absolute;
+        top: 1.5rem;
+        right: 1.5rem;
+        background: var(--bg-deep);
+        color: var(--fg);
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 1.5rem;
+        border: none;
+      }
+
+      .modal-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2rem;
+        text-align: center;
+      }
+
+      .modal-title {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: var(--accent);
+      }
+
+      .result-link-display {
+        background: var(--bg-deep);
+        padding: 1.5rem;
+        border-radius: 20px;
+        width: 100%;
+        font-weight: 700;
+        color: var(--blue);
+        word-break: break-all;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+      }
+
+      .modal-qr-wrapper {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 25px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      }
+
+      .modal-qr-wrapper img {
+        display: block;
+        width: 200px;
+        height: 200px;
+      }
+
+      .modal-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        width: 100%;
+      }
+
+      .modal-btn {
+        padding: 1rem;
+        border-radius: 15px;
+        border: 2px solid var(--bg-deep);
+        background: var(--bg-deep);
+        color: var(--fg);
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .modal-btn:hover {
+        border-color: var(--primary);
+        color: var(--primary);
+      }
+
+      .modal-btn.primary {
+        background: var(--grad);
+        color: var(--bg-deep);
+        border: none;
+      }
+
+      @keyframes fadeIn {
+        to {
+          opacity: 1;
+        }
+      }
+      @keyframes zoomIn {
+        to {
+          transform: scale(1);
+        }
+      }
+
+      /* Toast */
+      .toast {
+        position: fixed;
+        bottom: 2rem;
+        left: 50%;
+        transform: translateX(-50%) translateY(100px);
+        background: var(--secondary);
+        color: var(--bg-deep);
+        padding: 1rem 3rem;
+        border-radius: 20px;
+        font-weight: 900;
+        z-index: 2000;
+      }
+
+      .toast.show {
+        transform: translateX(-50%) translateY(0);
+      }
+
+      @media (max-width: 768px) {
+        h1 {
+          font-size: 2.5rem;
+        }
+        .card {
+          padding: 1.5rem;
+        }
+        .input-group {
+          flex-direction: column;
+        }
+        .main-btn {
+          padding: 1.25rem;
+        }
+        .modal-actions {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>SnipQURL</h1>
+      </header>
+
+      <div class="tabs-container">
+        <button class="tab-btn active" onclick="switchTab('shorten')">
+          SHORTEN
+        </button>
+        <button class="tab-btn" onclick="switchTab('qr')">QR GEN</button>
+      </div>
+
+      <main class="card">
+        <div id="tab-shorten" class="tab-content">
+          <div class="input-wrapper">
+            <div class="input-group">
+              <input
+                type="url"
+                id="url-shorten"
+                placeholder="Enter long link here..."
+              />
+              <button
+                id="btn-shorten"
+                class="main-btn"
+                onclick="handleShorten()"
+              >
+                Zap
+              </button>
+            </div>
+            <label class="checkbox-container">
+              <input type="checkbox" id="check-shorten-qr" /> + Also generate QR
+            </label>
+          </div>
+        </div>
+
+        <div id="tab-qr" class="tab-content" style="display: none">
+          <div class="input-wrapper">
+            <div class="input-group">
+              <input
+                type="url"
+                id="url-qr"
+                placeholder="Enter link for QR..."
+              />
+              <button id="btn-qr" class="main-btn" onclick="handleQR()">
+                Generate
+              </button>
+            </div>
+            <label class="checkbox-container">
+              <input type="checkbox" id="check-qr-shorten" /> + Also create
+              short link
+            </label>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- The Result Modal -->
+    <div id="modal" class="modal-overlay">
+      <div class="modal-card">
+        <button class="close-modal" onclick="closeModal()">&times;</button>
+        <div class="modal-content">
+          <div class="modal-title" id="modal-title">SUCCESS!</div>
+
+          <div id="res-link-box" style="display: none; width: 100%">
+            <div class="result-link-display" id="res-link"></div>
+            <div class="modal-actions" style="margin-top: 1rem">
+              <button class="modal-btn primary" onclick="copyLink()">
+                Copy Link
+              </button>
+              <button
+                class="modal-btn"
+                onclick="
+                  window.open(document.getElementById('res-link').textContent)
+                "
+              >
+                Visit
+              </button>
+            </div>
+          </div>
+
+          <div id="res-qr-box" style="display: none">
+            <div class="modal-qr-wrapper">
+              <img id="res-qr-img" src="" alt="QR Result" />
+            </div>
+            <div class="modal-actions" style="margin-top: 1.5rem">
+              <button class="modal-btn primary" onclick="downloadQR()">
+                Download
+              </button>
+              <button class="modal-btn" onclick="copyQR()">Copy Img</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast" class="toast">COPIED!</div>
+
+    <script>
+      let currentBlob = null;
+
+      function switchTab(type) {
+        document
+          .querySelectorAll(".tab-btn")
+          .forEach((b) => b.classList.remove("active"));
+        document
+          .querySelector(`[onclick="switchTab('${type}')"]`)
+          .classList.add("active");
+        document.getElementById("tab-shorten").style.display =
+          type === "shorten" ? "block" : "none";
+        document.getElementById("tab-qr").style.display =
+          type === "qr" ? "block" : "none";
+      }
+
+      function showToast(msg, isError = false) {
+        const t = document.getElementById("toast");
+        t.textContent = msg;
+        if (isError) {
+          t.classList.add("error");
+        } else {
+          t.classList.remove("error");
+        }
+        t.classList.add("show");
+        setTimeout(() => t.classList.remove("show"), 3000);
+      }
+
+      function openModal() {
+        document.getElementById("modal").classList.add("active");
+      }
+      function closeModal() {
+        document.getElementById("modal").classList.remove("active");
+        document.getElementById("res-link-box").style.display = "none";
+        document.getElementById("res-qr-box").style.display = "none";
+      }
+
+      async function handleShorten() {
+        const url = document.getElementById("url-shorten").value.trim();
+        if (!url) {
+          showToast("PLEASE ENTER A URL", true);
+          return;
+        }
+        const btn = document.getElementById("btn-shorten");
+        btn.disabled = true;
+
+        try {
+          const res = await fetch("/api/shorten", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url }),
+          });
+
+          if (!res.ok) {
+            const data = await res.json();
+            throw new Error(data.error || "SHORTENING FAILED");
+          }
+
+          const data = await res.json();
+
+          document.getElementById("res-link").textContent = data.code;
+          document.getElementById("res-link-box").style.display = "block";
+
+          if (document.getElementById("check-shorten-qr").checked) {
+            await fetchQR(data.code);
+          }
+          openModal();
+        } catch (e) {
+          showToast(e.message.toUpperCase(), true);
+        }
+        btn.disabled = false;
+      }
+
+      async function handleQR() {
+        const url = document.getElementById("url-qr").value.trim();
+        if (!url) {
+          showToast("PLEASE ENTER A URL", true);
+          return;
+        }
+        const btn = document.getElementById("btn-qr");
+        btn.disabled = true;
+
+        try {
+          let target = url;
+          if (document.getElementById("check-qr-shorten").checked) {
+            const res = await fetch("/api/shorten", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ url }),
+            });
+
+            if (!res.ok) {
+              const data = await res.json();
+              throw new Error(data.error || "SHORTENING FAILED");
+            }
+
+            const data = await res.json();
+            target = data.code;
+            document.getElementById("res-link").textContent = target;
+            document.getElementById("res-link-box").style.display = "block";
+          }
+          await fetchQR(target);
+          openModal();
+        } catch (e) {
+          showToast(e.message.toUpperCase(), true);
+        }
+        btn.disabled = false;
+      }
+
+      async function fetchQR(url) {
+        const res = await fetch("/api/qr", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url }),
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || "QR GENERATION FAILED");
+        }
+
+        currentBlob = await res.blob();
+        document.getElementById("res-qr-img").src =
+          URL.createObjectURL(currentBlob);
+        document.getElementById("res-qr-box").style.display = "block";
+      }
+
+      function copyLink() {
+        navigator.clipboard.writeText(
+          document.getElementById("res-link").textContent,
+        );
+        showToast("LINK COPIED!");
+      }
+
+      function downloadQR() {
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(currentBlob);
+        a.download = "snip-qr.png";
+        a.click();
+      }
+
+      async function copyQR() {
+        await navigator.clipboard.write([
+          new ClipboardItem({ [currentBlob.type]: currentBlob }),
+        ]);
+        showToast("IMAGE COPIED!");
+      }
+    </script>
+  </body>
+</html>

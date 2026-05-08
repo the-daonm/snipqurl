@@ -9,6 +9,9 @@ import (
 func SetUp(h *handler.URLHandler) *gin.Engine {
 	r := gin.Default()
 
+	r.Static("/static", "./static")
+	r.StaticFile("/", "./static/index.html")
+
 	api := r.Group("/api")
 	{
 		api.POST("/shorten", h.Shorten)
