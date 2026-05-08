@@ -8,7 +8,7 @@ on:
 
 env:
   GO_VERSION: "1.26.2"
-  IMAGE_NAME: the-daonm/snipqurl
+  IMAGE_NAME: dos382/snipqurl
 
 jobs:
   # lint:
