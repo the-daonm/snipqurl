@@ -1,0 +1,7 @@
+ansible/
+k8s/
+.github/
+.git/
+*.md
+.env
+.gitignore
