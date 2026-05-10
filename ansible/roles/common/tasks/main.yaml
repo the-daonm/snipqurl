@@ -1,0 +1,36 @@
+---
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install common tools
+  ansible.builtin.apt:
+    name:
+      - vim
+      - git
+      - curl
+      - ufw
+    state: present
+
+- name: Allow essential ports in UFW
+  community.general.ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+  loop:
+    - "22"
+    - "80"
+    - "443"
+
+- name: Set UFW default policies and enable
+  community.general.ufw:
+    state: enabled
+    policy: deny
+    direction: incoming
+
+- name: Ensure UFW is enabled on boot
+  ansible.builtin.service:
+    name: ufw
+    state: started
+    enabled: true

@@ -1,0 +1,20 @@
+---
+- name: Setup all servers
+  hosts: all
+  become: true
+  roles:
+    - common
+    - docker
+    - k8s-prep
+
+- name: Configure Master Node
+  hosts: master
+  become: true
+  roles:
+    - kubernetes-master
+
+- name: Configure Worker Nodes
+  hosts: worker
+  become: true
+  roles:
+    - kubernetes-worker

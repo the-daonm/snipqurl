@@ -1,0 +1,26 @@
+---
+- name: Disable swap
+  ansible.builtin.shell: |
+    swapoff -a
+    sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
+  changed_when: false
+
+- name: Allow Kubernetes Worker ports in UFW
+  community.general.ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+  loop:
+    - "10250"
+    - "30000:32767"
+
+- name: Allow Flannel VXLAN port in UFW
+  community.general.ufw:
+    rule: allow
+    port: "8472"
+    proto: udp
+
+- name: Join the cluster
+  ansible.builtin.command: "{{ hostvars[groups['master'][0]]['join_command'] }}"
+  args:
+    creates: /etc/kubernetes/kubelet.conf
