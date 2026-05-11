@@ -1,2 +1,3 @@
 .env
 ansible/inventory/hosts.yaml
+k8s/secret.yaml
