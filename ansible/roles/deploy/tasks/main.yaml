@@ -1,0 +1,70 @@
+---
+- name: Install dependencies for Kubernetes modules
+  become: true
+  ansible.builtin.package:
+    name:
+      - python3-pip
+      - python3-kubernetes
+    state: present
+
+- name: Create temporary directory for manifests
+  ansible.builtin.file:
+    path: /tmp/snipqurl-k8s
+    state: directory
+    mode: '0755'
+
+- name: Copy Kubernetes manifests to master node
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../../k8s/"
+    dest: /tmp/snipqurl-k8s/
+    mode: '0644'
+
+- name: Ensure the namespace exists
+  kubernetes.core.k8s:
+    src: /tmp/snipqurl-k8s/namespace.yaml
+    state: present
+
+- name: Apply ConfigMap
+  kubernetes.core.k8s:
+    src: /tmp/snipqurl-k8s/configmap.yaml
+    state: present
+
+- name: Check if secret.yaml exists on master
+  ansible.builtin.stat:
+    path: /tmp/snipqurl-k8s/secret.yaml
+  register: remote_secret_file
+
+- name: Apply Secret (if exists)
+  kubernetes.core.k8s:
+    src: /tmp/snipqurl-k8s/secret.yaml
+    state: present
+  when: remote_secret_file.stat.exists
+
+- name: Find Postgres manifests
+  ansible.builtin.find:
+    paths: /tmp/snipqurl-k8s/postgres/
+    patterns: "*.yaml"
+  register: postgres_files
+
+- name: Apply Postgres manifests
+  kubernetes.core.k8s:
+    src: "{{ item.path }}"
+    state: present
+  loop: "{{ postgres_files.files | sort(attribute='path') }}"
+
+- name: Find Application manifests
+  ansible.builtin.find:
+    paths: /tmp/snipqurl-k8s/app/
+    patterns: "*.yaml"
+  register: app_files
+
+- name: Apply Application manifests
+  kubernetes.core.k8s:
+    src: "{{ item.path }}"
+    state: present
+  loop: "{{ app_files.files | sort(attribute='path') }}"
+
+- name: Clean up temporary manifests
+  ansible.builtin.file:
+    path: /tmp/snipqurl-k8s
+    state: absent

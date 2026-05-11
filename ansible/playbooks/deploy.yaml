@@ -1,0 +1,6 @@
+---
+- name: Deploy snipqurl to Kubernetes
+  hosts: master
+  become: false
+  roles:
+    - deploy
