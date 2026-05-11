@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: snipqurl-configmap
+  namespace: snipqurl
+data:
+  DB_HOST: postgres
+  DB_PORT: "5432"
+  DB_USER: snipqurl
+  DB_NAME: snipqurl
+  POSTGRES_USER: snipqurl
+  POSTGRES_DB: snipqurl
+  DOMAIN: daonm.id.vn
+  GIN_MODE: release

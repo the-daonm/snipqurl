@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: snipqurl
+  namespace: snipqurl
+  labels:
+    app: snipqurl
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: snipqurl
+  template:
+    metadata:
+      labels:
+        app: snipqurl
+    spec:
+      containers:
+        - name: snipqurl
+          image: dos382/snipqurl:latest
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: snipqurl-configmap
+            - secretRef:
+                name: snipqurl-secret
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
