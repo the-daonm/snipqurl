@@ -10,6 +10,9 @@ env:
   GO_VERSION: "1.26.2"
   IMAGE_NAME: dos382/snipqurl
 
+permissions:
+  contents: write
+
 jobs:
   # lint:
   #   name: Lint
