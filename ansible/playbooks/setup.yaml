@@ -12,6 +12,7 @@
   become: true
   roles:
     - kubernetes-master
+    - argocd
 
 - name: Configure Worker Nodes
   hosts: worker
