@@ -121,11 +121,11 @@ jobs:
 
       - name: Create inventory file
         run: |
-          echo "${{ secrets.ANSIBLE_INVENTORY }}" > inventory.ini
+          echo "${{ secrets.ANSIBLE_INVENTORY }}" > inventory.yaml
 
       - name: Run Ansible Playbook
         run: |
-          ansible-playbook -i inventory.ini ansible/playbooks/deploy.yaml \
+          ansible-playbook -i inventory.yaml ansible/playbooks/deploy.yaml \
             -e "image_name=${{ env.IMAGE_NAME }}" \
             -e "image_tag=${{ github.sha }}" \
             -e "db_password=${{ secrets.DB_PASSWORD }}" \
