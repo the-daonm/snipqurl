@@ -50,6 +50,23 @@
     state: present
   when: deploy_remote_secret_file.stat.exists
 
+- name: Create Secret from variables (if file doesn't exist)
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: snipqurl-secret
+        namespace: snipqurl
+      type: Opaque
+      stringData:
+        DB_PASSWORD: "{{ db_password }}"
+        POSTGRES_PASSWORD: "{{ db_password }}"
+  when:
+    - not deploy_remote_secret_file.stat.exists
+    - db_password is defined
+
 - name: Find Postgres manifests
   ansible.builtin.find:
     paths: /tmp/snipqurl-k8s/postgres/
@@ -79,7 +96,22 @@
   kubernetes.core.k8s:
     src: "{{ item.path }}"
     state: present
+    definition:
+      spec:
+        template:
+          spec:
+            containers:
+              - name: snipqurl
+                image: "{{ image_name }}:{{ image_tag | default('latest') }}"
   loop: "{{ deploy_app_files.files | sort(attribute='path') }}"
+  when: "'deployment.yaml' in item.path"
+
+- name: Apply other Application manifests
+  kubernetes.core.k8s:
+    src: "{{ item.path }}"
+    state: present
+  loop: "{{ deploy_app_files.files | sort(attribute='path') }}"
+  when: "'deployment.yaml' not in item.path"
 
 - name: Clean up temporary manifests
   ansible.builtin.file:
