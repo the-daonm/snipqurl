@@ -1,0 +1,44 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: snipqurl-migration
+  namespace: snipqurl
+spec:
+  template:
+    spec:
+      containers:
+      - name: migration
+        image: postgres:16-alpine
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            export PGPASSWORD="$DB_PASSWORD"
+            psql -h postgres -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /migrations/000001_create_urls_table.up.sql
+        envFrom:
+          - configMapRef:
+              name: snipqurl-configmap
+          - secretRef:
+              name: snipqurl-secret
+        volumeMounts:
+        - name: migrations
+          mountPath: /migrations
+      restartPolicy: OnFailure
+      volumes:
+      - name: migrations
+        configMap:
+          name: snipqurl-migrations-cm
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: snipqurl-migrations-cm
+  namespace: snipqurl
+data:
+  000001_create_urls_table.up.sql: |
+    CREATE TABLE IF NOT EXISTS urls (
+      id bigserial primary key,
+      original_url text not null,
+      short_code varchar(10) unique,
+      clicks integer default 0,
+      created_at timestamp default now()
+    );
