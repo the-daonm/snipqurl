@@ -92,11 +92,12 @@
     patterns: "*.yaml"
   register: deploy_app_files
 
-- name: Apply Application manifests
+- name: Apply Application manifests (Deployment with image override)
   kubernetes.core.k8s:
-    src: "{{ item.path }}"
+    definition: "{{ lookup('file', item.path) | from_yaml | combine(image_override, recursive=True) }}"
     state: present
-    definition:
+  vars:
+    image_override:
       spec:
         template:
           spec:
