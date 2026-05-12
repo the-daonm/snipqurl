@@ -1,4 +1,14 @@
 ---
+- name: Prepare storage on all nodes
+  hosts: all
+  become: true
+  tasks:
+    - name: Create local storage directory for Postgres
+      ansible.builtin.file:
+        path: /mnt/data/postgres
+        state: directory
+        mode: '0777'
+
 - name: Deploy snipqurl to Kubernetes
   hosts: master
   become: false

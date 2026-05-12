@@ -11,17 +11,27 @@
   ansible.builtin.file:
     path: /tmp/snipqurl-k8s
     state: directory
-    mode: '0755'
+    mode: "0755"
 
 - name: Copy Kubernetes manifests to master node
   ansible.builtin.copy:
     src: "{{ playbook_dir }}/../../k8s/"
     dest: /tmp/snipqurl-k8s/
-    mode: '0644'
+    mode: "0644"
 
 - name: Ensure the namespace exists
   kubernetes.core.k8s:
     src: /tmp/snipqurl-k8s/namespace.yaml
+    state: present
+
+- name: Wait for cert-manager webhook to be ready
+  ansible.builtin.command:
+    cmd: kubectl wait --for=condition=Available deployment/cert-manager-webhook -n cert-manager --timeout=120s
+  changed_when: false
+
+- name: Apply ClusterIssuer
+  kubernetes.core.k8s:
+    src: /tmp/snipqurl-k8s/cluster-issuer.yaml
     state: present
 
 - name: Apply ConfigMap
@@ -32,37 +42,44 @@
 - name: Check if secret.yaml exists on master
   ansible.builtin.stat:
     path: /tmp/snipqurl-k8s/secret.yaml
-  register: remote_secret_file
+  register: deploy_remote_secret_file
 
 - name: Apply Secret (if exists)
   kubernetes.core.k8s:
     src: /tmp/snipqurl-k8s/secret.yaml
     state: present
-  when: remote_secret_file.stat.exists
+  when: deploy_remote_secret_file.stat.exists
 
 - name: Find Postgres manifests
   ansible.builtin.find:
     paths: /tmp/snipqurl-k8s/postgres/
     patterns: "*.yaml"
-  register: postgres_files
+  register: deploy_postgres_files
+
+- name: Delete old migration job
+  kubernetes.core.k8s:
+    name: snipqurl-migration
+    namespace: snipqurl
+    kind: Job
+    state: absent
 
 - name: Apply Postgres manifests
   kubernetes.core.k8s:
     src: "{{ item.path }}"
     state: present
-  loop: "{{ postgres_files.files | sort(attribute='path') }}"
+  loop: "{{ deploy_postgres_files.files | sort(attribute='path') }}"
 
 - name: Find Application manifests
   ansible.builtin.find:
     paths: /tmp/snipqurl-k8s/app/
     patterns: "*.yaml"
-  register: app_files
+  register: deploy_app_files
 
 - name: Apply Application manifests
   kubernetes.core.k8s:
     src: "{{ item.path }}"
     state: present
-  loop: "{{ app_files.files | sort(attribute='path') }}"
+  loop: "{{ deploy_app_files.files | sort(attribute='path') }}"
 
 - name: Clean up temporary manifests
   ansible.builtin.file:

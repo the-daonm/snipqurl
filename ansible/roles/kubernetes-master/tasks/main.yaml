@@ -74,3 +74,82 @@
 - name: Set join command fact
   ansible.builtin.set_fact:
     join_command: "{{ join_command_raw.stdout }}"
+
+- name: Install NGINX Ingress Controller
+  ansible.builtin.command:
+    cmd: kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.10.1/deploy/static/provider/baremetal/deploy.yaml
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  changed_when: false
+
+- name: Wait for NGINX Ingress Controller to be ready
+  ansible.builtin.command:
+    cmd: kubectl wait --for=condition=Available deployment/ingress-nginx-controller -n ingress-nginx --timeout=300s
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  changed_when: false
+
+- name: Wait for NGINX Ingress admission jobs to complete
+  ansible.builtin.command:
+    cmd: kubectl wait --for=condition=complete job --all -n ingress-nginx --timeout=300s
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  changed_when: false
+
+- name: Remove problematic NGINX admission webhook
+  ansible.builtin.command:
+    cmd: kubectl delete validatingwebhookconfigurations ingress-nginx-admission
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  failed_when: false # Don't fail if it's already deleted
+  changed_when: true
+
+- name: Patch NGINX Ingress Controller for hostNetwork
+  ansible.builtin.command:
+    cmd: >
+      kubectl patch deployment ingress-nginx-controller -n ingress-nginx --type='json'
+      -p='[{"op":"replace", "path":"/spec/template/spec/hostNetwork", "value":true}]'
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  changed_when: true
+
+- name: Untaint master node
+  ansible.builtin.command:
+    cmd: kubectl taint nodes --all node-role.kubernetes.io/control-plane-
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  failed_when: false
+  changed_when: true
+
+- name: Force NGINX Ingress to run on Master node
+  ansible.builtin.command:
+    cmd: |
+      kubectl patch deployment ingress-nginx-controller -n ingress-nginx --type='json' -p='[
+        {"op":"add", "path":"/spec/template/spec/nodeSelector", "value":{"kubernetes.io/hostname":"master"}},
+        {"op":"add", "path":"/spec/template/spec/tolerations",
+        "value":[{"key":"node-role.kubernetes.io/control-plane", "operator":"Exists", "effect":"NoSchedule"}]}
+      ]'
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  changed_when: true
+
+- name: Wait for all nodes to be ready
+  ansible.builtin.command:
+    cmd: kubectl wait --for=condition=Ready nodes --all --timeout=300s
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  changed_when: false
+
+- name: Install cert-manager
+  ansible.builtin.command:
+    cmd: kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.4/cert-manager.yaml
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  changed_when: false
+
+- name: Wait for cert-manager deployments to be ready
+  ansible.builtin.command:
+    cmd: kubectl wait --for=condition=Available --all deployments -n cert-manager --timeout=300s
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  changed_when: false
