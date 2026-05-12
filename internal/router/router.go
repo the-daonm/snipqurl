@@ -11,6 +11,7 @@ func SetUp(h *handler.URLHandler) *gin.Engine {
 
 	r.Static("/static", "./static")
 	r.StaticFile("/", "./static/index.html")
+	r.StaticFile("/favicon.ico", "./static/favicon.ico")
 
 	api := r.Group("/api")
 	{
