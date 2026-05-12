@@ -9,5 +9,6 @@ FROM alpine:latest
 RUN apk add --no-cache ca-certificates
 WORKDIR /app
 COPY --from=builder /app/snipqurl .
+COPY --from=builder /app/static ./static
 EXPOSE 8080
 CMD ["./snipqurl"]
