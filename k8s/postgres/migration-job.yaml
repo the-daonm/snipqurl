@@ -3,6 +3,9 @@ kind: Job
 metadata:
   name: snipqurl-migration
   namespace: snipqurl
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
 spec:
   template:
     spec:
@@ -12,8 +15,14 @@ spec:
         command: ["/bin/sh", "-c"]
         args:
           - |
+            set -e
             export PGPASSWORD="$DB_PASSWORD"
-            psql -h postgres -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /migrations/000001_create_urls_table.up.sql
+            echo "Running migrations..."
+            for f in $(ls /migrations/*.up.sql | sort); do
+              echo "Applying $f..."
+              psql -v ON_ERROR_STOP=1 -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f "$f"
+            done
+            echo "Migrations complete."
         envFrom:
           - configMapRef:
               name: snipqurl-configmap
@@ -42,3 +51,7 @@ data:
       clicks integer default 0,
       created_at timestamp default now()
     );
+  000002_add_alias_and_expiration.up.sql: |
+    -- Alter short_code length and add expires_at column
+    ALTER TABLE urls ALTER COLUMN short_code TYPE varchar(30);
+    ALTER TABLE urls ADD COLUMN IF NOT EXISTS expires_at timestamp;
