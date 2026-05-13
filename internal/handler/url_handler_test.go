@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 
 	"snipqurl/internal/handler"
 	"snipqurl/internal/model"
@@ -22,7 +23,7 @@ type mockURLService struct {
 	generateQRFunc     func(url string) ([]byte, error)
 }
 
-func (m *mockURLService) Shorten(originalURL string) (*model.URL, error) {
+func (m *mockURLService) Shorten(originalURL string, alias string, expiresAt *time.Time) (*model.URL, error) {
 	return m.shortenFunc(originalURL)
 }
 
@@ -112,6 +113,14 @@ func TestURLHandler_Redirect(t *testing.T) {
 				return &model.URL{OriginalURL: "https://google.com"}, nil
 			},
 			expectedCode: http.StatusMovedPermanently,
+		},
+		{
+			name: "expired",
+			code: "expired",
+			mockGetURL: func(code string) (*model.URL, error) {
+				return nil, service.ErrExpired
+			},
+			expectedCode: http.StatusGone,
 		},
 		{
 			name: "not found",

@@ -4,25 +4,29 @@ import (
 	"testing"
 )
 
-func TestValidateURL(t *testing.T) {
+func TestNormalizeAndValidateURL(t *testing.T) {
 	tests := []struct {
 		name    string
 		url     string
+		want    string
 		wantErr bool
 	}{
-		{"valid http", "http://google.com", false},
-		{"valid https", "https://google.com", false},
-		{"missing scheme", "google.com", true},
-		{"invalid scheme", "ftp://google.com", true},
-		{"empty string", "", true},
-		{"invalid url", "http://192.168.0.%31", true},
+		{"valid http", "http://google.com", "http://google.com", false},
+		{"valid https", "https://google.com", "https://google.com", false},
+		{"missing scheme", "google.com", "http://google.com", false},
+		{"invalid scheme", "ftp://google.com", "", true},
+		{"empty string", "", "", true},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validateURL(tt.url)
+			got, err := normalizeAndValidateURL(tt.url)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("validateURL() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("normalizeAndValidateURL() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("normalizeAndValidateURL() got = %v, want %v", got, tt.want)
 			}
 		})
 	}

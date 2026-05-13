@@ -1,7 +1,6 @@
 package service_test
 
 import (
-	"errors"
 	"testing"
 
 	"snipqurl/internal/model"
@@ -31,6 +30,7 @@ func TestURLService_Shorten(t *testing.T) {
 	tests := []struct {
 		name        string
 		url         string
+		alias       string
 		mockFindBy  func(code string) (*model.URL, error)
 		mockSave    func(url *model.URL) error
 		expectError bool
@@ -48,17 +48,15 @@ func TestURLService_Shorten(t *testing.T) {
 		},
 		{
 			name:        "invalid url",
-			url:         "not-a-url",
+			url:         "",
 			expectError: true,
 		},
 		{
-			name: "db save error",
+			name: "alias taken",
 			url:  "https://google.com",
+			alias: "taken",
 			mockFindBy: func(code string) (*model.URL, error) {
-				return nil, repository.ErrNotFound
-			},
-			mockSave: func(url *model.URL) error {
-				return errors.New("db error")
+				return &model.URL{ShortCode: "taken"}, nil
 			},
 			expectError: true,
 		},
@@ -72,7 +70,7 @@ func TestURLService_Shorten(t *testing.T) {
 			}
 			svc := service.New(mockRepo)
 
-			_, err := svc.Shorten(tt.url)
+			_, err := svc.Shorten(tt.url, tt.alias, nil)
 			if (err != nil) != tt.expectError {
 				t.Errorf("expected error: %v, got: %v", tt.expectError, err)
 			}

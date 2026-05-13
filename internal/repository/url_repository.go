@@ -26,10 +26,10 @@ func New(db *sqlx.DB) URLRepository {
 
 func (r *urlRepository) Save(url *model.URL) error {
 	query := `
-		INSERT INTO urls (original_url, short_code)
-		VALUES ($1, $2)`
+		INSERT INTO urls (original_url, short_code, expires_at)
+		VALUES ($1, $2, $3)`
 
-	_, err := r.db.Exec(query, url.OriginalURL, url.ShortCode)
+	_, err := r.db.Exec(query, url.OriginalURL, url.ShortCode, url.ExpiresAt)
 	if err != nil {
 		return fmt.Errorf("failed to insert url: %w", err)
 	}

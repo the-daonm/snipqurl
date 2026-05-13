@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"time"
 
 	"snipqurl/internal/metrics"
 	"snipqurl/internal/model"
@@ -13,8 +14,11 @@ import (
 	"github.com/skip2/go-qrcode"
 )
 
+var ErrExpired = errors.New("url has expired")
+var ErrAliasTaken = errors.New("alias already taken")
+
 type URLService interface {
-	Shorten(originalURL string) (*model.URL, error)
+	Shorten(originalURL string, alias string, expiresAt *time.Time) (*model.URL, error)
 	GetOriginalURL(code string) (*model.URL, error)
 	GenerateQR(originalURL string) ([]byte, error)
 }
@@ -27,28 +31,40 @@ func New(repo repository.URLRepository) URLService {
 	return &urlService{repo: repo}
 }
 
-func (s *urlService) Shorten(originalURL string) (*model.URL, error) {
-	err := validateURL(originalURL)
+func (s *urlService) Shorten(originalURL string, alias string, expiresAt *time.Time) (*model.URL, error) {
+	normalizedURL, err := normalizeAndValidateURL(originalURL)
 	if err != nil {
 		return nil, err
 	}
 
 	var code string
-	for {
-		code = rand.Text()[:8]
+	if alias != "" {
+		code = alias
 		_, err := s.repo.FindByShortCode(code)
-		if errors.Is(err, repository.ErrNotFound) {
-			break
-		}
 		if err == nil {
-			continue
+			return nil, ErrAliasTaken
 		}
-		return nil, err
+		if !errors.Is(err, repository.ErrNotFound) {
+			return nil, err
+		}
+	} else {
+		for {
+			code = rand.Text()[:8]
+			_, err := s.repo.FindByShortCode(code)
+			if errors.Is(err, repository.ErrNotFound) {
+				break
+			}
+			if err == nil {
+				continue
+			}
+			return nil, err
+		}
 	}
 
 	newURL := &model.URL{
-		OriginalURL: originalURL,
+		OriginalURL: normalizedURL,
 		ShortCode:   code,
+		ExpiresAt:   expiresAt,
 	}
 	err = s.repo.Save(newURL)
 	if err != nil {
@@ -66,6 +82,10 @@ func (s *urlService) GetOriginalURL(code string) (*model.URL, error) {
 		return nil, err
 	}
 
+	if u.ExpiresAt != nil && time.Now().After(*u.ExpiresAt) {
+		return nil, ErrExpired
+	}
+
 	err = s.repo.IncrementClick(code)
 	if err != nil {
 		log.Printf("fail increment click")
@@ -77,12 +97,12 @@ func (s *urlService) GetOriginalURL(code string) (*model.URL, error) {
 }
 
 func (s *urlService) GenerateQR(originalURL string) ([]byte, error) {
-	err := validateURL(originalURL)
+	normalizedURL, err := normalizeAndValidateURL(originalURL)
 	if err != nil {
 		return nil, err
 	}
 
-	png, err := qrcode.Encode(originalURL, qrcode.Medium, 1024)
+	png, err := qrcode.Encode(normalizedURL, qrcode.Medium, 1024)
 	if err != nil {
 		return nil, err
 	}
