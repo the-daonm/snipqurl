@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: snipqurl
-          image: dos382/snipqurl:0aa3263bce4e585a3e300f67b7e6149931416bd2
+          image: dos382/snipqurl:630d80feba988499f0e5a8523425e2b4b1176df7
           ports:
             - containerPort: 8080
           envFrom:
