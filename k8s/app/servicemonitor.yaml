@@ -1,0 +1,16 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: snipqurl
+  namespace: snipqurl
+  labels:
+    app: snipqurl
+    release: prometheus # Common label used by Prometheus Operator to discover ServiceMonitors
+spec:
+  selector:
+    matchLabels:
+      app: snipqurl
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
