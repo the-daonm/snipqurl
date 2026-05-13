@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 
+	"snipqurl/internal/metrics"
 	"snipqurl/internal/model"
 	"snipqurl/internal/repository"
 
@@ -54,6 +55,8 @@ func (s *urlService) Shorten(originalURL string) (*model.URL, error) {
 		return nil, fmt.Errorf("failed to save url: %w", err)
 	}
 
+	metrics.URLsShortenedTotal.Inc()
+
 	return newURL, nil
 }
 
@@ -68,6 +71,8 @@ func (s *urlService) GetOriginalURL(code string) (*model.URL, error) {
 		log.Printf("fail increment click")
 	}
 
+	metrics.RedirectsTotal.Inc()
+
 	return u, nil
 }
 
@@ -81,6 +86,8 @@ func (s *urlService) GenerateQR(originalURL string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	metrics.QRGeneratedTotal.Inc()
 
 	return png, nil
 }
