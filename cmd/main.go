@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"time"
 
 	"snipqurl/internal/database"
 	"snipqurl/internal/handler"
@@ -26,6 +27,22 @@ func main() {
 	svc := service.New(repo)
 	h := handler.New(svc)
 	r := router.SetUp(h)
+
+	r.Run()
+
+	go func() {
+		ticker := time.NewTicker(1 * time.Hour)
+		for range ticker.C {
+			rows, err := repo.DeleteExpired()
+			if err != nil {
+				log.Printf("cleanup error: %v", err)
+				continue
+			}
+			if rows > 0 {
+				log.Printf("cleaned up %d expired urls", rows)
+			}
+		}
+	}()
 
 	r.Run()
 }

@@ -14,6 +14,7 @@ type URLRepository interface {
 	Save(url *model.URL) error
 	FindByShortCode(code string) (*model.URL, error)
 	IncrementClick(code string) error
+	DeleteExpired() (int64, error)
 }
 
 type urlRepository struct {
@@ -66,4 +67,16 @@ func (r *urlRepository) IncrementClick(code string) error {
 	}
 
 	return nil
+}
+
+func (r *urlRepository) DeleteExpired() (int64, error) {
+	query := `DELETE FROM urls WHERE expires_at IS NOT NULL AND expires_at < NOW()`
+
+	result, err := r.db.Exec(query)
+	if err != nil {
+		return 0, fmt.Errorf("failed to delete expired urls: %w", err)
+	}
+
+	rows, _ := result.RowsAffected()
+	return rows, nil
 }

@@ -35,15 +35,18 @@ func (h *URLHandler) Shorten(c *gin.Context) {
 	}
 
 	var expiresAt *time.Time
-	if req.ExpiresIn != "" {
-		duration, err := time.ParseDuration(req.ExpiresIn)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid expires_in format"})
-			return
-		}
-		t := time.Now().Add(duration)
-		expiresAt = &t
+	durationStr := req.ExpiresIn
+	if durationStr == "" {
+		durationStr = "720h" // Default to 30 days
 	}
+
+	duration, err := time.ParseDuration(durationStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid expires_in format"})
+		return
+	}
+	t := time.Now().Add(duration)
+	expiresAt = &t
 
 	u, err := h.svc.Shorten(req.URL, req.Alias, expiresAt)
 	if err != nil {

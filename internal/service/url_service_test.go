@@ -9,9 +9,10 @@ import (
 )
 
 type mockURLRepository struct {
-	saveFunc           func(url *model.URL) error
+	saveFunc            func(url *model.URL) error
 	findByShortCodeFunc func(code string) (*model.URL, error)
-	incrementClickFunc func(code string) error
+	incrementClickFunc  func(code string) error
+	deleteExpiredFunc   func() (int64, error)
 }
 
 func (m *mockURLRepository) Save(url *model.URL) error {
@@ -24,6 +25,13 @@ func (m *mockURLRepository) FindByShortCode(code string) (*model.URL, error) {
 
 func (m *mockURLRepository) IncrementClick(code string) error {
 	return m.incrementClickFunc(code)
+}
+
+func (m *mockURLRepository) DeleteExpired() (int64, error) {
+	if m.deleteExpiredFunc != nil {
+		return m.deleteExpiredFunc()
+	}
+	return 0, nil
 }
 
 func TestURLService_Shorten(t *testing.T) {
@@ -52,8 +60,8 @@ func TestURLService_Shorten(t *testing.T) {
 			expectError: true,
 		},
 		{
-			name: "alias taken",
-			url:  "https://google.com",
+			name:  "alias taken",
+			url:   "https://google.com",
 			alias: "taken",
 			mockFindBy: func(code string) (*model.URL, error) {
 				return &model.URL{ShortCode: "taken"}, nil
