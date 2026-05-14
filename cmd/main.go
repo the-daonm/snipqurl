@@ -28,9 +28,14 @@ func main() {
 	h := handler.New(svc)
 	r := router.SetUp(h)
 
-	r.Run()
-
 	go func() {
+		rows, err := repo.DeleteExpired()
+		if err != nil {
+			log.Printf("initial cleanup error: %v", err)
+		} else if rows > 0 {
+			log.Printf("initial cleanup: cleaned up %d expired urls", rows)
+		}
+
 		ticker := time.NewTicker(1 * time.Hour)
 		for range ticker.C {
 			rows, err := repo.DeleteExpired()
